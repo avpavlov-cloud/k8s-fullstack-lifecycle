@@ -58,3 +58,19 @@ kubectl exec -it db-0 -n k8s-lifecycle-prod -- psql -U postgres -c "SELECT versi
 ```bash
 kubectl apply -f infrastructure/01-log-collector.yaml
 ```
+
+## Добавление нового узла
+```bash
+minikube node add
+```
+Список узлов 
+```bash
+kubectl get nodes
+```
+Удалим его
+```bash
+minikube node delete minikube-m02
+```
+
+
+
