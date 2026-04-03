@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+  namespace: k8s-lifecycle-prod
+spec:
+  hard:
+    # Суммарные лимиты на весь Namespace
+    requests.cpu: "2"          # Минимум гарантируем 2 ядра
+    requests.memory: 4Gi       # Минимум гарантируем 4 ГБ ОЗУ
+    limits.cpu: "4"            # Максимум разрешаем использовать 4 ядра
+    limits.memory: 8Gi         # Максимум разрешаем 8 ГБ ОЗУ
+    # Ограничение количества объектов
+    pods: "20"                 # Не более 20 подов одновременно
+    services: "5"              # Не более 5 сервисов
+    persistentvolumeclaims: "5" # Ограничение на количество дисков
