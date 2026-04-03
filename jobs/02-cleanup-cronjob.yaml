@@ -4,7 +4,10 @@ metadata:
   name: log-cleaner
   namespace: k8s-lifecycle-prod
 spec:
-  schedule: "*/1 * * * *" # Запуск каждую минуту
+  schedule: "*/1 * * * *"
+  # Кнопки управления историей:
+  successfulJobsHistoryLimit: 1   # Хранить только 1 последний успешный под
+  failedJobsHistoryLimit: 1       # Хранить только 1 последний упавший под
   jobTemplate:
     spec:
       template:
