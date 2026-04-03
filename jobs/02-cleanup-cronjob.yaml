@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: log-cleaner
+  namespace: k8s-lifecycle-prod
+spec:
+  schedule: "*/1 * * * *" # Запуск каждую минуту
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cleaner
+            image: busybox
+            command: ["echo", "Логи очищены."]
+          restartPolicy: OnFailure
