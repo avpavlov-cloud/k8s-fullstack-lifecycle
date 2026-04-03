@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-exporter
+  namespace: k8s-lifecycle-prod
+  labels:
+    k8s-app: fluent-bit-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluent-bit
+  template:
+    metadata:
+      labels:
+        name: fluent-bit
+    spec:
+      # Важно: DaemonSet обычно имеет доступ к системным файлам узла
+      containers:
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.1.4
+        resources:
+          limits:
+            memory: 100Mi
+            cpu: 100m
+        # Монтируем системные папки узла, чтобы читать логи Docker/Containerd
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers

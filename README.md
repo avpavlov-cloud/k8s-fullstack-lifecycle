@@ -49,3 +49,12 @@ kubectl apply -f app-stateful/
 ```bash
  kubectl get pods -n k8s-lifecycle-prod
 ```
+
+Запрос к БД для получения информации
+```bash
+kubectl exec -it db-0 -n k8s-lifecycle-prod -- psql -U postgres -c "SELECT version();"
+```
+
+```bash
+kubectl apply -f infrastructure/01-log-collector.yaml
+```
