@@ -69,6 +69,20 @@ func (r *MySiteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	err := r.Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: mySite.Namespace}, foundDeployment)
 
+
+	if err == nil {
+		if *foundDeployment.Spec.Replicas != mySite.Spec.Replicas {
+			fmt.Printf("[ОПЕРАТОР] Обновляю реплики для %s: было %d, стало %d\n", 
+				deploymentName, *foundDeployment.Spec.Replicas, mySite.Spec.Replicas)
+			
+			foundDeployment.Spec.Replicas = &mySite.Spec.Replicas
+			if err := r.Update(ctx, foundDeployment); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil // Выходим, так как обновление выполнено
+	}
+
 	if err != nil && errors.IsNotFound(err) {
 		// 3. ЕСЛИ ДЕПЛОЙМЕНТА НЕТ — СОЗДАЕМ ЕГО
 		fmt.Printf("[ОПЕРАТОР] Создаю новый Deployment: %s\n", deploymentName)

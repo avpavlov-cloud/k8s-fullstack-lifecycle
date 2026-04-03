@@ -76,6 +76,9 @@ minikube node delete minikube-m02
 ```bash
 ~/k8s-fullstack-lifecycle/operator$ go run main.go
 ```
-
+Применение оператора
+```bash
+ kubectl apply -f custom-res/02-sample-site.yaml
+ ```
 
 

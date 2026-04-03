@@ -7,4 +7,4 @@ spec:
   # Этот образ оператор подставит в создаваемый Deployment
   image: "nginx:stable-alpine"
   # Это количество реплик оператор установит для подов
-  replicas: 2
+  replicas: 5
