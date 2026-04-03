@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: k8s-lifecycle-prod
+spec:
+  selector:
+    app: web-server             # Находим поды с этой меткой
+  ports:
+    - protocol: TCP
+      port: 80                  # Порт сервиса
+      targetPort: 80            # Порт внутри контейнера
+  type: ClusterIP               # Внутренний адрес (только внутри кластера)

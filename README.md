@@ -29,3 +29,13 @@ kubectl get configmap app-settings -n k8s-lifecycle-prod -o yaml
 ```bash
 kubectl get secret app-credentials -n k8s-lifecycle-prod -o jsonpath='{.data.DB_USER}' | base64 --decode; echo ""
 ```
+
+Проверить что запустилось прямо сейчас
+```bash
+kubectl get all -n k8s-lifecycle-prod
+```
+
+Получить переменные окружения
+```bash
+kubectl exec -it deployment/lifecycle-app -n k8s-lifecycle-prod -- printenv | grep APP_
+```

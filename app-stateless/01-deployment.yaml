@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lifecycle-app
+  namespace: k8s-lifecycle-prod
+  labels:
+    app: web-server
+spec:
+  replicas: 3                   # Запускаем 3 копии для отказоустойчивости
+  selector:
+    matchLabels:
+      app: web-server
+  strategy:
+    type: RollingUpdate         # Обновляем по очереди, без простоя
+    rollingUpdate:
+      maxSurge: 1               # Можно временно создать +1 под при обновлении
+      maxUnavailable: 0         # Всегда должно работать не менее 3 подов
+  template:
+    metadata:
+      labels:
+        app: web-server
+    spec:
+      containers:
+      - name: main-container
+        image: nginx:1.25-alpine # Тестовый образ (замените на свой)
+        ports:
+        - containerPort: 80
+        # ПОДКЛЮЧАЕМ РЕСУРСЫ (из этапа 1)
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        # ПОДКЛЮЧАЕМ КОНФИГИ И СЕКРЕТЫ (из этапа 2)
+        envFrom:
+        - configMapRef:
+            name: app-settings
+        - secretRef:
+            name: app-credentials
+        # ПРОВЕРКИ ЗДОРОВЬЯ
+        livenessProbe:          # Жив ли контейнер?
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+        readinessProbe:         # Готов ли принимать трафик?
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
