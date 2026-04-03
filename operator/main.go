@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
+	appsv1 "k8s.io/api/apps/v1" // Для работы с Deployment
+	corev1 "k8s.io/api/core/v1" // Для работы с Pods и Containers
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,15 +15,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-// 1. Структура одиночного объекта
+// --- СТРУКТУРЫ ДАННЫХ ---
 type MySite struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              MySiteSpec `json:"spec"`
+}
 
-	Spec struct {
-		Image    string `json:"image"`
-		Replicas int    `json:"replicas"`
-	} `json:"spec"`
+type MySiteSpec struct {
+	Image    string `json:"image"`
+	Replicas int32  `json:"replicas"`
 }
 
 func (in *MySite) DeepCopyObject() runtime.Object {
@@ -30,7 +33,6 @@ func (in *MySite) DeepCopyObject() runtime.Object {
 	return out
 }
 
-// 2. СТРУКТУРА СПИСКА (Этого не хватало!)
 type MySiteList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -47,44 +49,78 @@ func (in *MySiteList) DeepCopyObject() runtime.Object {
 	return out
 }
 
-// 3. Логика контроллера
+// --- ЛОГИКА ОПЕРАТОРА ---
 type MySiteReconciler struct {
 	client.Client
 }
 
 func (r *MySiteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	fmt.Printf("\n[ОПЕРАТОР] >>> Вижу объект MySite: %s в пространстве %s\n", req.Name, req.Namespace)
+	// 1. Получаем сам объект MySite из базы
+	var mySite MySite
+	if err := r.Get(ctx, req.NamespacedName, &mySite); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	fmt.Printf("\n[ОПЕРАТОР] Обработка %s. Образ: %s, Реплик: %d\n", mySite.Name, mySite.Spec.Image, mySite.Spec.Replicas)
+
+	// 2. Описываем желаемый Deployment
+	deploymentName := mySite.Name + "-deploy"
+	foundDeployment := &appsv1.Deployment{}
+
+	err := r.Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: mySite.Namespace}, foundDeployment)
+
+	if err != nil && errors.IsNotFound(err) {
+		// 3. ЕСЛИ ДЕПЛОЙМЕНТА НЕТ — СОЗДАЕМ ЕГО
+		fmt.Printf("[ОПЕРАТОР] Создаю новый Deployment: %s\n", deploymentName)
+
+		newDeploy := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      deploymentName,
+				Namespace: mySite.Namespace,
+				// Привязываем деплоймент к MySite (если удалить MySite, удалится и деплоймент)
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(&mySite, schema.GroupVersionKind{
+						Group:   "stable.example.com",
+						Version: "v1",
+						Kind:    "MySite",
+					}),
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &mySite.Spec.Replicas,
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": deploymentName},
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": deploymentName}},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Name:  "web",
+							Image: mySite.Spec.Image,
+						}},
+					},
+				},
+			},
+		}
+
+		if err := r.Create(ctx, newDeploy); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
 func main() {
 	ctrl.SetLogger(zap.New())
-	fmt.Println(">>> Запуск оператора k8s-fullstack-lifecycle...")
-
 	scheme := runtime.NewScheme()
 	gv := schema.GroupVersion{Group: "stable.example.com", Version: "v1"}
-	
-	// Регистрируем и объект, и СПИСОК объектов
 	scheme.AddKnownTypes(gv, &MySite{}, &MySiteList{})
 	metav1.AddToGroupVersion(scheme, gv)
+	// Добавляем стандартные типы (Deployment), чтобы оператор их понимал
+	_ = appsv1.AddToScheme(scheme)
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		os.Exit(1)
-	}
-
-	err = ctrl.NewControllerManagedBy(mgr).
-		For(&MySite{}). 
-		Complete(&MySiteReconciler{Client: mgr.GetClient()})
-	
-	if err != nil {
-		fmt.Printf("Ошибка: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		os.Exit(1)
-	}
+	mgr, _ := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme})
+	_ = ctrl.NewControllerManagedBy(mgr).For(&MySite{}).Complete(&MySiteReconciler{Client: mgr.GetClient()})
+	_ = mgr.Start(ctrl.SetupSignalHandler())
 }

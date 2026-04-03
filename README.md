@@ -72,5 +72,10 @@ kubectl get nodes
 minikube node delete minikube-m02
 ```
 
+## Добавление нового оператора
+```bash
+~/k8s-fullstack-lifecycle/operator$ go run main.go
+```
+
 
 

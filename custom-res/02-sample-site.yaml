@@ -1,0 +1,10 @@
+apiVersion: stable.example.com/v1
+kind: MySite
+metadata:
+  name: marketing-site
+  namespace: k8s-lifecycle-prod
+spec:
+  # Этот образ оператор подставит в создаваемый Deployment
+  image: "nginx:stable-alpine"
+  # Это количество реплик оператор установит для подов
+  replicas: 2
