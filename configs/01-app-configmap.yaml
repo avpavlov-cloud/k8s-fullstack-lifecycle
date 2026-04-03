@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-settings
+  namespace: k8s-lifecycle-prod
+data:
+  APP_ENV: "production"
+  DB_HOST: "database-service.k8s-lifecycle-prod.svc.cluster.local"
+  DB_PORT: "5432"
+  LOG_LEVEL: "info"
