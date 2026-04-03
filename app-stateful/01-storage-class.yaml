@@ -1,0 +1,7 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-storage
+provisioner: kubernetes.io/no-provisioner # Или облачный, например kubernetes.io/aws-ebs
+reclaimPolicy: Retain                     # НЕ удалять диск при удалении пода (важно!)
+volumeBindingMode: WaitForFirstConsumer

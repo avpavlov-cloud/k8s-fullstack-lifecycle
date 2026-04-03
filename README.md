@@ -39,3 +39,13 @@ kubectl get all -n k8s-lifecycle-prod
 ```bash
 kubectl exec -it deployment/lifecycle-app -n k8s-lifecycle-prod -- printenv | grep APP_
 ```
+
+## Разворачивание Stateful-слоя
+```bash
+kubectl apply -f app-stateful/
+```
+
+Просмотр подов пространства имён `k8s-lifecycle-prod`
+```bash
+ kubectl get pods -n k8s-lifecycle-prod
+```

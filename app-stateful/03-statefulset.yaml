@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: k8s-lifecycle-prod
+spec:
+  serviceName: "database-service" # Привязка к Headless сервису
+  replicas: 2
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD  # Берем пароль из секретов (Этап 2)
+          valueFrom:
+            secretKeyRef:
+              name: app-credentials
+              key: DB_PASSWORD
+        volumeMounts:
+        - name: db-data            # Монтируем диск в папку данных БД
+          mountPath: /var/lib/postgresql/data
+  # ШАБЛОН ДЛЯ АВТОМАТИЧЕСКОГО СОЗДАНИЯ ДИСКОВ (PVC)
+  volumeClaimTemplates:
+  - metadata:
+      name: db-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "fast-storage"
+      resources:
+        requests:
+          storage: 1Gi             # Размер диска для каждой реплики
